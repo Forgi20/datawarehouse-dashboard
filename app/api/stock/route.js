@@ -3,6 +3,227 @@ import path from 'path';
 import fs from 'fs';
 import { NextResponse } from 'next/server';
 
+// LCG Pseudo-Random Number Generator for model seed consistency
+let lcgSeed = 42;
+function seededRandom() {
+  const x = Math.sin(lcgSeed++) * 10000;
+  return x - Math.floor(x);
+}
+
+// 1. Support Vector Regression (SVR with RBF Kernel approximation)
+function fitSVR(X, Y, X_pred) {
+  const M = X.length;
+  const gamma = 0.08;
+  const lambda = 0.05; // regularisation
+
+  // Build Kernel Matrix
+  const K = Array(M).fill(0).map(() => Array(M).fill(0));
+  for (let i = 0; i < M; i++) {
+    for (let j = 0; j < M; j++) {
+      K[i][j] = Math.exp(-gamma * Math.pow(X[i] - X[j], 2));
+    }
+  }
+
+  // Regularize diagonal
+  for (let i = 0; i < M; i++) {
+    K[i][i] += lambda;
+  }
+
+  // Solve system (K + lambda*I) * alpha = Y
+  const alpha = solveLinearSystem(K, Y);
+
+  // Predict on targets
+  return X_pred.map(x => {
+    let sum = 0;
+    for (let i = 0; i < M; i++) {
+      sum += alpha[i] * Math.exp(-gamma * Math.pow(X[i] - x, 2));
+    }
+    return sum;
+  });
+}
+
+// Helper: Solve A * x = B via Gaussian Elimination
+function solveLinearSystem(A, B) {
+  const n = B.length;
+  const M = A.map((row, i) => [...row, B[i]]);
+
+  for (let i = 0; i < n; i++) {
+    let maxEl = Math.abs(M[i][i]);
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(M[k][i]) > maxEl) {
+        maxEl = Math.abs(M[k][i]);
+        maxRow = k;
+      }
+    }
+
+    const temp = M[maxRow];
+    M[maxRow] = M[i];
+    M[i] = temp;
+
+    for (let k = i + 1; k < n; k++) {
+      const c = -M[k][i] / M[i][i];
+      for (let j = i; j < n + 1; j++) {
+        if (i === j) {
+          M[k][j] = 0;
+        } else {
+          M[k][j] += c * M[i][j];
+        }
+      }
+    }
+  }
+
+  const x = Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = M[i][n] / M[i][i];
+    for (let k = i - 1; k >= 0; k--) {
+      M[k][n] -= M[k][i] * x[i];
+    }
+  }
+  return x;
+}
+
+// 2. Neural Network Regressor (MLP with Sigmoid activation)
+function fitMLP(X, Y, X_pred) {
+  lcgSeed = 100; // Reset seed
+  const M = X.length;
+  
+  // Normalize parameters
+  const xMin = Math.min(...X);
+  const xMax = Math.max(...X);
+  const yMin = Math.min(...Y);
+  const yMax = Math.max(...Y);
+
+  const normX = X.map(x => (x - xMin) / (xMax - xMin || 1));
+  const normY = Y.map(y => (y - yMin) / (yMax - yMin || 1));
+
+  // W1 is 1x5, b1 is 5
+  // W2 is 5x1, b2 is 1
+  let W1 = Array(5).fill(0).map(() => seededRandom() * 2 - 1);
+  let b1 = Array(5).fill(0).map(() => seededRandom() * 2 - 1);
+  let W2 = Array(5).fill(0).map(() => seededRandom() * 2 - 1);
+  let b2 = seededRandom() * 2 - 1;
+
+  const lr = 0.08;
+  const epochs = 150;
+
+  for (let epoch = 0; epoch < epochs; epoch++) {
+    for (let i = 0; i < M; i++) {
+      const xi = normX[i];
+      const yi = normY[i];
+
+      // Forward
+      const h_in = b1.map((b, j) => xi * W1[j] + b);
+      const h_out = h_in.map(val => 1 / (1 + Math.exp(-val)));
+      const y_out = W2.reduce((sum, w, j) => sum + h_out[j] * w, 0) + b2;
+
+      // Backward
+      const d_out = y_out - yi;
+      const d_hidden = h_out.map((ho, j) => d_out * W2[j] * ho * (1 - ho));
+
+      // Weight adjustment
+      b2 -= lr * d_out;
+      for (let j = 0; j < 5; j++) {
+        W2[j] -= lr * d_out * h_out[j];
+        b1[j] -= lr * d_hidden[j];
+        W1[j] -= lr * d_hidden[j] * xi;
+      }
+    }
+  }
+
+  return X_pred.map(x => {
+    const xi = (x - xMin) / (xMax - xMin || 1);
+    const h_in = b1.map((b, j) => xi * W1[j] + b);
+    const h_out = h_in.map(val => 1 / (1 + Math.exp(-val)));
+    const y_out = W2.reduce((sum, w, j) => sum + h_out[j] * w, 0) + b2;
+    return y_out * (yMax - yMin) + yMin;
+  });
+}
+
+// 3. XGBoost (Ensemble of Decision Stumps approximation)
+function fitXGBoost(X, Y, X_pred) {
+  const M = X.length;
+  const meanY = Y.reduce((s, y) => s + y, 0) / M;
+  let F = Array(M).fill(meanY);
+
+  const trees = [];
+  const learningRate = 0.25;
+  const numTrees = 5;
+
+  for (let t = 0; t < numTrees; t++) {
+    const residuals = Y.map((y, i) => y - F[i]);
+
+    let bestSplit = 0;
+    let bestFeatureVal = 0;
+    let bestMSE = Infinity;
+    let leftVal = 0;
+    let rightVal = 0;
+
+    for (let s = 0; s < M; s++) {
+      const splitVal = X[s];
+      const leftIndices = [];
+      const rightIndices = [];
+      for (let i = 0; i < M; i++) {
+        if (X[i] <= splitVal) leftIndices.push(i);
+        else rightIndices.push(i);
+      }
+
+      if (leftIndices.length === 0 || rightIndices.length === 0) continue;
+
+      const meanLeft = leftIndices.reduce((sum, idx) => sum + residuals[idx], 0) / leftIndices.length;
+      const meanRight = rightIndices.reduce((sum, idx) => sum + residuals[idx], 0) / rightIndices.length;
+
+      let mse = 0;
+      leftIndices.forEach(idx => { mse += Math.pow(residuals[idx] - meanLeft, 2); });
+      rightIndices.forEach(idx => { mse += Math.pow(residuals[idx] - meanRight, 2); });
+
+      if (mse < bestMSE) {
+        bestMSE = mse;
+        bestFeatureVal = splitVal;
+        leftVal = meanLeft;
+        rightVal = meanRight;
+      }
+    }
+
+    const tree = { split: bestFeatureVal, left: leftVal, right: rightVal };
+    trees.push(tree);
+
+    for (let i = 0; i < M; i++) {
+      const prediction = X[i] <= tree.split ? tree.left : tree.right;
+      F[i] += learningRate * prediction;
+    }
+  }
+
+  return X_pred.map(x => {
+    let predVal = meanY;
+    trees.forEach(tree => {
+      const stepVal = x <= tree.split ? tree.left : tree.right;
+      predVal += learningRate * stepVal;
+    });
+    return predVal;
+  });
+}
+
+// Generate business days skipping weekends
+const getNextBusinessDays = (startDateStr, count) => {
+  const dates = [startDateStr];
+  let currentDate = new Date(startDateStr);
+  
+  while (dates.length <= count) {
+    currentDate.setDate(currentDate.getDate() + 1);
+    const day = currentDate.getDay();
+    if (day !== 0 && day !== 6) { // Skip Sunday (0) and Saturday (6)
+      const dateString = currentDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      dates.push(dateString);
+    }
+  }
+  return dates;
+};
+
 export async function GET() {
   try {
     const filePath = path.join(process.cwd(), 'dahamkom.xlsx');
@@ -16,17 +237,15 @@ export async function GET() {
       return NextResponse.json({ error: 'No data found in excel' }, { status: 404 });
     }
 
-    // Helper to clean keys (trim and remove non-breaking spaces like \u00a0)
+    // Clean keys
     const cleanKey = (key) => key.trim().replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
 
-    // Normalize and clean rows
     const cleanedData = rawData.map(row => {
       const cleanedRow = {};
       Object.keys(row).forEach(key => {
         cleanedRow[cleanKey(key)] = row[key];
       });
 
-      // Parse fields
       const date = cleanedRow['Date'] ? cleanedRow['Date'].toString().trim() : '';
       
       const parseNumber = (val) => {
@@ -54,11 +273,41 @@ export async function GET() {
       };
     });
 
-    // Excel is sorted newest to oldest (May 2026 down to June 2025). 
-    // We reverse it to chronologically sort (oldest to newest) for graph drawing.
+    // Reverse to chronological order (oldest first)
     cleanedData.reverse();
 
-    // 1. Calculate General Statistics
+    // Calculate MA7, MA30, priceChange, priceChangePercent, and Trend for each row
+    cleanedData.forEach((d, i) => {
+      // MA7
+      let sum7 = 0;
+      let count7 = 0;
+      for (let j = Math.max(0, i - 6); j <= i; j++) {
+        sum7 += cleanedData[j].close;
+        count7++;
+      }
+      d.ma7 = Math.round((sum7 / count7) * 100) / 100;
+
+      // MA30
+      let sum30 = 0;
+      let count30 = 0;
+      for (let j = Math.max(0, i - 29); j <= i; j++) {
+        sum30 += cleanedData[j].close;
+        count30++;
+      }
+      d.ma30 = Math.round((sum30 / count30) * 100) / 100;
+
+      // Daily Price Change & Trend
+      if (i > 0) {
+        d.priceChange = Math.round((d.close - cleanedData[i - 1].close) * 100) / 100;
+        d.priceChangePercent = Math.round(((d.priceChange / cleanedData[i - 1].close) * 100) * 100) / 100;
+        d.trend = d.priceChange > 0 ? "Naik" : d.priceChange < 0 ? "Turun" : "Flat";
+      } else {
+        d.priceChange = 0;
+        d.priceChangePercent = 0;
+        d.trend = "Flat";
+      }
+    });
+
     const totalRecords = cleanedData.length;
     const latestIndex = totalRecords - 1;
     const latestData = cleanedData[latestIndex];
@@ -69,9 +318,6 @@ export async function GET() {
     const priceChange = currentPrice - previousClose;
     const percentChange = (priceChange / previousClose) * 100;
 
-    // Day Range
-    const dayLow = latestData.low || currentPrice;
-    const dayHigh = latestData.high || currentPrice;
     const dayOpen = latestData.open || currentPrice;
     const dayVolume = latestData.volume || 0;
 
@@ -92,22 +338,26 @@ export async function GET() {
 
     const avgVolume = volumeCount > 0 ? Math.round(sumVolume / volumeCount) : 0;
 
-    // Simulated/Real Data warehouse metadata
-    const sharesOutstanding = 99062216600; // TLKM total shares ~99.06 Billion
+    // DW Baseline configurations
+    const janInitialPrice = 2780; // Baseline as shown on dashboard slide
+    const totalGain = currentPrice - janInitialPrice;
+    const pctTotalReturn = (totalGain / janInitialPrice) * 100;
+
+    const sharesOutstanding = 99062216600; 
     const marketCap = currentPrice * sharesOutstanding;
-    const beta = 0.73; // Standard beta for TLKM
-    const peRatio = 12.35; // P/E Ratio
-    const eps = 252.63; // Earnings Per Share
-    const divYield = "186.47 (5.98%)"; // Dividend & Yield
+    const beta = 0.73; 
+    const peRatio = 12.35; 
+    const eps = 252.63; 
+    const divYield = "186.47 (5.98%)"; 
     const exDivDate = "Jun 14, 2026";
     const targetEst = 3850.00;
 
     const keyStats = {
       previousClose,
       open: dayOpen,
-      dayRange: `${dayLow.toLocaleString('id-ID')} - ${dayHigh.toLocaleString('id-ID')}`,
-      dayLow,
-      dayHigh,
+      dayRange: `${latestData.low.toLocaleString('id-ID')} - ${latestData.high.toLocaleString('id-ID')}`,
+      dayLow: latestData.low,
+      dayHigh: latestData.high,
       fiftyTwoWeekRange: `${minClose.toLocaleString('id-ID')} - ${maxClose.toLocaleString('id-ID')}`,
       fiftyTwoWeekLow: minClose,
       fiftyTwoWeekHigh: maxClose,
@@ -119,15 +369,15 @@ export async function GET() {
       eps,
       divYield,
       exDivDate,
-      targetEst
+      targetEst,
+      janInitialPrice,
+      totalGain,
+      pctTotalReturn
     };
 
-    // 2. Aggregate monthly performance
-    // Group by YYYY-MM
+    // 2. Monthly aggregates
     const monthlyGroups = {};
     cleanedData.forEach(d => {
-      // Parse date format: e.g., "May 29, 2026" or "2026-05-29"
-      // Let's standardise or parse to extract month name/year.
       let yearMonth = '';
       let monthName = '';
       try {
@@ -139,11 +389,10 @@ export async function GET() {
           monthName = months[monthIndex] + ' ' + year;
           yearMonth = `${year}-${(monthIndex + 1).toString().padStart(2, '0')}`;
         } else {
-          // Fallback parsing for format "May 29, 2026"
           const parts = d.date.replace(/,/g, '').split(' ');
           if (parts.length === 3) {
             monthName = `${parts[0].substring(0, 3)} ${parts[2]}`;
-            yearMonth = `${parts[2]}-${parts[0]}`; // Not strictly sorted but works as a key
+            yearMonth = `${parts[2]}-${parts[0]}`;
           } else {
             monthName = d.date;
             yearMonth = d.date;
@@ -170,7 +419,7 @@ export async function GET() {
     });
 
     const monthlyData = Object.keys(monthlyGroups)
-      .sort() // Sort chronologically by YYYY-MM
+      .sort()
       .map(key => {
         const group = monthlyGroups[key];
         return {
@@ -180,47 +429,28 @@ export async function GET() {
         };
       });
 
-    // 3. Simple predictions using Double Exponential Smoothing (Holt's Linear)
-    // We run it on the last 40 days to establish the trend and predict 3 days ahead.
+    // 3. Train ML Models on last 40 days
     const lastNDays = cleanedData.slice(-40);
-    const alpha = 0.35; // level smoothing factor
-    const betaSmoothing = 0.25; // trend smoothing factor
+    const X = lastNDays.map((_, i) => i);
+    const Y = lastNDays.map(d => d.close);
 
-    let level = lastNDays[0].close;
-    let trend = lastNDays[1].close - lastNDays[0].close;
+    // Predict X_pred (indexes 39 to 44, matching date string mapping)
+    const X_pred = [39, 40, 41, 42, 43, 44];
+    const predDates = getNextBusinessDays(latestData.date, 5);
 
-    for (let i = 1; i < lastNDays.length; i++) {
-      const lastLevel = level;
-      const actual = lastNDays[i].close;
-      level = alpha * actual + (1 - alpha) * (level + trend);
-      trend = betaSmoothing * (level - lastLevel) + (1 - betaSmoothing) * trend;
-    }
+    const svmPredictions = fitSVR(X, Y, X_pred);
+    const mlpPredictions = fitMLP(X, Y, X_pred);
+    const xgbPredictions = fitXGBoost(X, Y, X_pred);
 
-    // Forecast next 3 days
-    const forecasts = [];
-    const lastDate = new Date(latestData.date);
-    
-    for (let step = 1; step <= 3; step++) {
-      const predictedPrice = Math.round((level + step * trend) * 100) / 100;
-      
-      // Calculate forecast date
-      const forecastDate = new Date(lastDate);
-      forecastDate.setDate(lastDate.getDate() + step);
-      // Skip weekends for business days if possible, but simple addition is fine
-      const dateString = forecastDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
+    const forecasts = predDates.map((date, idx) => {
+      return {
+        date,
+        svm: Math.round(svmPredictions[idx] * 100) / 100,
+        mlp: Math.round(mlpPredictions[idx] * 100) / 100,
+        xgboost: Math.round(xgbPredictions[idx] * 100) / 100
+      };
+    });
 
-      forecasts.push({
-        dayIndex: step,
-        date: dateString,
-        close: predictedPrice
-      });
-    }
-
-    // Send metadata about the datawarehouse
     const warehouseMetadata = {
       sourceFile: 'dahamkom.xlsx',
       recordCount: totalRecords,
