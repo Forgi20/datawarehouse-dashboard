@@ -425,9 +425,26 @@ export default function Home() {
             {activeTab === "profile" && (
               <div>
                 <div style={{ marginBottom: "20px" }}>
-                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)", marginBottom: "8px" }}>Profil PT Telkom Indonesia (Persero) Tbk</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                    PT Telkom Indonesia (Persero) Tbk (Telkom) adalah badan usaha milik negara (BUMN) yang bergerak di bidang jasa layanan teknologi informasi dan komunikasi (TIK) serta jaringan telekomunikasi di Indonesia. Telkom mengkonsolidasikan infrastruktur serat optik, jaringan seluler (melalui anak usahanya, Telkomsel), serta layanan digital enterprise guna mendorong transformasi ekonomi digital nasional.
+                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)", marginBottom: "12px" }}>Profil PT Telkom Indonesia (Persero) Tbk</h4>
+                  
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.7", marginBottom: "12px" }}>
+                    PT Telkom Indonesia (Persero) Tbk (kode saham: TLKM) adalah Badan Usaha Milik Negara (BUMN) terbesar di sektor telekomunikasi Indonesia yang didirikan pada tahun 1965. Perusahaan ini merupakan penyedia layanan teknologi informasi dan komunikasi (TIK) serta jaringan telekomunikasi terlengkap di Indonesia, dengan portofolio bisnis yang mencakup layanan telepon tetap (fixed-line), broadband internet, jaringan seluler melalui anak usahanya Telkomsel, serta berbagai solusi digital enterprise. Dengan kepemilikan saham mayoritas oleh Pemerintah Republik Indonesia sebesar 52,09%, Telkom menjadi pilar strategis dalam mendorong transformasi ekonomi digital nasional.
+                  </p>
+                  
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.7", marginBottom: "12px" }}>
+                    Telkom mengoperasikan infrastruktur backbone serat optik terpanjang di Indonesia dengan total panjang lebih dari 174.000 km, mencakup jaringan darat maupun kabel laut yang menghubungkan seluruh kepulauan Nusantara. Jaringan ini menjadi tulang punggung konektivitas digital Indonesia dan mendukung layanan IndiHome, yang merupakan layanan triple-play (internet, telepon rumah, dan IPTV) dengan basis pelanggan terbesar di tanah air. Selain itu, melalui Telkomsel, perusahaan melayani lebih dari 159 juta pelanggan seluler dengan cakupan jaringan 4G LTE di lebih dari 98% wilayah populasi Indonesia.
+                  </p>
+                  
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.7", marginBottom: "12px" }}>
+                    Dalam strategi transformasi digital, Telkom telah mengembangkan ekosistem layanan digital yang komprehensif melalui lima pilar bisnis utama: Digital Connectivity (IndiHome, Telkomsel), Digital Platform (data center, cloud computing melalui NeutraDC), Digital Service (IoT, big data analytics, cybersecurity), dan Enterprise Digital Service yang menyasar segmen korporasi serta UMKM. Perusahaan juga aktif mengembangkan pusat data (data center) berskala hyperscale di berbagai kota besar Indonesia untuk mendukung kebutuhan cloud computing yang terus meningkat.
+                  </p>
+                  
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.7", marginBottom: "12px" }}>
+                    Saham TLKM tercatat di Bursa Efek Indonesia (BEI) dan juga diperdagangkan di New York Stock Exchange (NYSE) dalam bentuk American Depositary Shares (ADS) dengan kode TLK. Sebagai salah satu saham blue-chip dengan kapitalisasi pasar terbesar di BEI, TLKM menjadi komponen utama dalam indeks LQ45 dan IDX30. Perusahaan secara konsisten membagikan dividen kepada pemegang saham dengan dividend payout ratio yang kompetitif, menjadikannya pilihan favorit investor institusional maupun ritel untuk investasi jangka panjang.
+                  </p>
+                  
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.7", marginBottom: "0" }}>
+                    Dalam konteks proyek Data Warehouse ini, data historis harga saham TLKM digunakan sebagai sumber data utama (fact table) yang diekstraksi melalui proses ETL (Extract, Transform, Load) dari file spreadsheet. Data ini kemudian ditransformasi ke dalam skema dimensi waktu (time dimension) dan fakta harga (price fact) untuk mendukung analisis performa saham secara multidimensional, termasuk perhitungan moving average (MA7, MA30), perubahan harga harian, volume transaksi, serta model peramalan harga menggunakan berbagai algoritma machine learning seperti SVR, MLP Neural Network, dan XGBoost.
                   </p>
                 </div>
 
@@ -560,57 +577,86 @@ export default function Home() {
             )}
 
             {/* Tab content 3: Predictions & Forecasting */}
-            {activeTab === "prediction" && (
+            {activeTab === "prediction" && stockData.predictions && (
               <div>
                 <div style={{ marginBottom: "16px" }}>
-                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)", marginBottom: "4px" }}>Hasil Model Peramalan Harga Saham (3 Hari ke Depan)</h4>
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Diestimasi menggunakan algoritma Double Exponential Smoothing (Holt's Linear) pada 40 hari trading aktif terakhir</p>
+                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)", marginBottom: "4px" }}>Hasil Model Peramalan Harga Saham (Multi-Model Ensemble)</h4>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Diestimasi menggunakan 6 algoritma ML (SVR, MLP Neural Network, XGBoost, Naïve Bayes, Logistic Regression, KNN) pada 40 hari trading aktif terakhir</p>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                  {/* Forecast price list */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {stockData.predictions.map((p, idx) => (
-                      <div key={idx} style={{ background: "rgba(14, 165, 233, 0.04)", border: "1px solid rgba(14, 165, 233, 0.15)", borderRadius: "8px", padding: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Proyeksi Hari ke-{p.dayIndex}</span>
-                          <h5 style={{ fontSize: "0.9rem", margin: "4px 0 0", color: "var(--text-primary)" }}>{p.date}</h5>
+                {/* Forecast Cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
+                  {stockData.predictions.map((p, idx) => {
+                    const avgPrice = Math.round(((p.svm || 0) + (p.mlp || 0) + (p.xgboost || 0) + (p.naiveBayes || 0) + (p.logisticRegression || 0) + (p.knn || 0)) / 6);
+                    return (
+                      <div key={idx} style={{ background: "rgba(14, 165, 233, 0.04)", border: "1px solid rgba(14, 165, 233, 0.15)", borderRadius: "8px", padding: "16px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                          <div>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Proyeksi Hari ke-{idx + 1}</span>
+                            <h5 style={{ fontSize: "0.9rem", margin: "4px 0 0", color: "var(--text-primary)" }}>{p.date}</h5>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <span style={{ fontSize: "0.65rem", color: "#38bdf8", padding: "2px 6px", background: "rgba(14, 165, 233, 0.15)", borderRadius: "4px", fontWeight: 700 }}>ENSEMBLE AVG</span>
+                            <h4 style={{ fontSize: "1.2rem", margin: "4px 0 0", color: "var(--text-primary)", fontWeight: 800 }}>Rp {avgPrice.toLocaleString("id-ID")}</h4>
+                          </div>
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <span style={{ fontSize: "0.65rem", color: "#38bdf8", padding: "2px 6px", background: "rgba(14, 165, 233, 0.15)", borderRadius: "4px", fontWeight: 700 }}>PREDICTION</span>
-                          <h4 style={{ fontSize: "1.2rem", margin: "4px 0 0", color: "var(--text-primary)", fontWeight: 800 }}>Rp {p.close.toLocaleString("id-ID")}</h4>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                          {[
+                            { label: "SVR", value: p.svm, color: "#8b5cf6" },
+                            { label: "MLP", value: p.mlp, color: "#06b6d4" },
+                            { label: "XGBoost", value: p.xgboost, color: "#f59e0b" },
+                            { label: "Naïve Bayes", value: p.naiveBayes, color: "#ec4899" },
+                            { label: "Log. Reg.", value: p.logisticRegression, color: "#10b981" },
+                            { label: "KNN", value: p.knn, color: "#6366f1" },
+                          ].map((m, mIdx) => (
+                            <div key={mIdx} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+                              <span style={{ fontSize: "0.65rem", color: m.color, fontWeight: 700, display: "block", marginBottom: "2px" }}>{m.label}</span>
+                              <span style={{ fontSize: "0.8rem", color: "var(--text-primary)", fontWeight: 600 }}>Rp {(m.value || 0).toLocaleString("id-ID")}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
+                </div>
 
-                  {/* Prediction technical explanation */}
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", background: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px" }}>
-                    <div>
-                      <h5 style={{ fontSize: "0.85rem", color: "var(--text-primary)", marginBottom: "6px" }}>Detail Konfigurasi Model</h5>
-                      <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.4", marginBottom: "12px" }}>
-                        Double Exponential Smoothing membagi run data ke dalam parameter Level (&alpha; = 0.35) dan Trend (&beta; = 0.25). Model ini cocok untuk deret waktu keuangan jangka pendek yang menunjukkan arah tren linier lokal.
-                      </p>
-                    </div>
-
+                {/* Model Metrics */}
+                {stockData.modelMetrics && (
+                  <div style={{ background: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px" }}>
+                    <h5 style={{ fontSize: "0.85rem", color: "var(--text-primary)", marginBottom: "6px" }}>Evaluasi Akurasi Model (MAE - Mean Absolute Error)</h5>
+                    <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.4", marginBottom: "12px" }}>
+                      MAE mengukur rata-rata kesalahan absolut prediksi terhadap harga aktual pada data training (40 hari terakhir). Semakin kecil nilai MAE, semakin akurat model.
+                    </p>
                     <table className="stats-table" style={{ fontSize: "0.75rem" }}>
                       <tbody>
                         <tr>
-                          <td className="label">Keandalan Prediksi (MAE)</td>
-                          <td className="value" style={{ color: "var(--color-up)" }}>±1.48% (Sangat Baik)</td>
+                          <td className="label">Support Vector Regression (SVR)</td>
+                          <td className="value" style={{ color: "var(--color-up)" }}>MAE: {stockData.modelMetrics.svm?.toFixed(2) || "N/A"}</td>
                         </tr>
                         <tr>
-                          <td className="label">Faktor Smoothing Level</td>
-                          <td className="value">&alpha; = 0.35</td>
+                          <td className="label">MLP Neural Network</td>
+                          <td className="value" style={{ color: "var(--color-up)" }}>MAE: {stockData.modelMetrics.mlp?.toFixed(2) || "N/A"}</td>
                         </tr>
                         <tr>
-                          <td className="label">Faktor Smoothing Tren</td>
-                          <td className="value">&beta; = 0.25</td>
+                          <td className="label">XGBoost (Gradient Boosting)</td>
+                          <td className="value" style={{ color: "var(--color-up)" }}>MAE: {stockData.modelMetrics.xgboost?.toFixed(2) || "N/A"}</td>
+                        </tr>
+                        <tr>
+                          <td className="label">Naïve Bayes Regression</td>
+                          <td className="value">MAE: {stockData.modelMetrics.naiveBayes?.toFixed(2) || "N/A"}</td>
+                        </tr>
+                        <tr>
+                          <td className="label">Logistic Regression</td>
+                          <td className="value">MAE: {stockData.modelMetrics.logisticRegression?.toFixed(2) || "N/A"}</td>
+                        </tr>
+                        <tr>
+                          <td className="label">K-Nearest Neighbors (KNN)</td>
+                          <td className="value">MAE: {stockData.modelMetrics.knn?.toFixed(2) || "N/A"}</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
