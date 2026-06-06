@@ -1,11 +1,13 @@
 import * as xlsx from 'xlsx';
 import path from 'path';
+import fs from 'fs';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
     const filePath = path.join(process.cwd(), 'dahamkom.xlsx');
-    const workbook = xlsx.readFile(filePath);
+    const fileBuffer = fs.readFileSync(filePath);
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const rawData = xlsx.utils.sheet_to_json(worksheet);
