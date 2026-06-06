@@ -577,88 +577,197 @@ export default function Home() {
             )}
 
             {/* Tab content 3: Predictions & Forecasting */}
-            {activeTab === "prediction" && stockData.predictions && (
+            {activeTab === "prediction" && stockData.predictions && stockData.modelMetrics && (() => {
+              // Define all 6 models
+              const allModels = [
+                { key: "svm",               label: "SVR",            fullName: "Support Vector Regression",  color: "#8b5cf6" },
+                { key: "mlp",               label: "MLP",            fullName: "MLP Neural Network",         color: "#06b6d4" },
+                { key: "xgboost",           label: "XGBoost",        fullName: "XGBoost (Gradient Boosting)",color: "#f59e0b" },
+                { key: "naiveBayes",        label: "Naïve Bayes",    fullName: "Naïve Bayes Regression",     color: "#ec4899" },
+                { key: "logisticRegression",label: "Log. Reg.",       fullName: "Logistic Regression",        color: "#10b981" },
+                { key: "knn",               label: "KNN",            fullName: "K-Nearest Neighbors",        color: "#6366f1" },
+              ];
+
+              // Rank by MAE ascending → pick top 3
+              const ranked = [...allModels]
+                .map(m => ({ ...m, mae: stockData.modelMetrics[m.key] ?? Infinity }))
+                .sort((a, b) => a.mae - b.mae);
+              const top3 = ranked.slice(0, 3);
+
+              // Build chart data: last 10 historical closes + forecast days
+              const histSlice = stockData.history.slice(-10).map(d => ({
+                date: d.date, actual: d.close,
+              }));
+              const forecastPoints = stockData.predictions.map((p, i) => {
+                const point = { date: p.date };
+                top3.forEach(m => { point[m.key] = Math.round(p[m.key] || 0); });
+                return point;
+              });
+              const chartData = [
+                ...histSlice,
+                // bridge point: last historical repeated so lines connect
+                { date: histSlice[histSlice.length - 1]?.date, ...(() => {
+                    const bridge = {};
+                    top3.forEach(m => { bridge[m.key] = histSlice[histSlice.length - 1]?.actual; });
+                    return bridge;
+                  })()
+                },
+                ...forecastPoints,
+              ];
+
+              return (
               <div>
                 <div style={{ marginBottom: "16px" }}>
-                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)", marginBottom: "4px" }}>Hasil Model Peramalan Harga Saham (Multi-Model Ensemble)</h4>
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Diestimasi menggunakan 6 algoritma ML (SVR, MLP Neural Network, XGBoost, Naïve Bayes, Logistic Regression, KNN) pada 40 hari trading aktif terakhir</p>
+                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)", marginBottom: "4px" }}>Top 3 Model Prediksi Terbaik</h4>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    Dipilih otomatis berdasarkan MAE terendah dari 6 algoritma ML yang dilatih pada 40 hari trading terakhir
+                  </p>
                 </div>
 
-                {/* Forecast Cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
-                  {stockData.predictions.map((p, idx) => {
-                    const avgPrice = Math.round(((p.svm || 0) + (p.mlp || 0) + (p.xgboost || 0) + (p.naiveBayes || 0) + (p.logisticRegression || 0) + (p.knn || 0)) / 6);
-                    return (
-                      <div key={idx} style={{ background: "rgba(14, 165, 233, 0.04)", border: "1px solid rgba(14, 165, 233, 0.15)", borderRadius: "8px", padding: "16px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                          <div>
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Proyeksi Hari ke-{idx + 1}</span>
-                            <h5 style={{ fontSize: "0.9rem", margin: "4px 0 0", color: "var(--text-primary)" }}>{p.date}</h5>
-                          </div>
-                          <div style={{ textAlign: "right" }}>
-                            <span style={{ fontSize: "0.65rem", color: "#38bdf8", padding: "2px 6px", background: "rgba(14, 165, 233, 0.15)", borderRadius: "4px", fontWeight: 700 }}>ENSEMBLE AVG</span>
-                            <h4 style={{ fontSize: "1.2rem", margin: "4px 0 0", color: "var(--text-primary)", fontWeight: 800 }}>Rp {avgPrice.toLocaleString("id-ID")}</h4>
-                          </div>
+                {/* 🏆 Top 3 Model Badge Row */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "20px" }}>
+                  {top3.map((m, rank) => (
+                    <div key={m.key} style={{
+                      background: `linear-gradient(135deg, ${m.color}10 0%, ${m.color}20 100%)`,
+                      border: `1px solid ${m.color}40`,
+                      borderRadius: "10px",
+                      padding: "14px",
+                      position: "relative",
+                      overflow: "hidden"
+                    }}>
+                      <div style={{ position: "absolute", top: "8px", right: "10px", fontSize: "0.7rem", fontWeight: 800, color: m.color, opacity: 0.7 }}>
+                        #{rank + 1}
+                      </div>
+                      <div style={{ fontSize: "0.65rem", color: m.color, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>
+                        {m.label}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "8px" }}>{m.fullName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        MAE: <span style={{ color: "var(--color-up)", fontWeight: 700 }}>{m.mae.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 📈 Forecast Line Chart */}
+                <div className="card" style={{ padding: "16px", marginBottom: "20px" }}>
+                  <h5 style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: "4px" }}>Visualisasi Prediksi Harga (5 Hari ke Depan)</h5>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginBottom: "14px" }}>
+                    Garis putus-putus = proyeksi • Garis solid = data historis aktual (10 hari terakhir)
+                  </p>
+                  <div style={{ width: "100%", height: "260px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 6, right: 16, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                        <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={9} interval={2} dy={6} />
+                        <YAxis stroke="var(--text-muted)" fontSize={10} domain={["auto","auto"]}
+                          tickFormatter={v => `${(v/1000).toFixed(1)}k`} />
+                        <Tooltip
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="chart-tooltip">
+                                  <p className="chart-tooltip-date">{label}</p>
+                                  {payload.map((entry, i) => (
+                                    <p key={i} className="chart-tooltip-val" style={{ color: entry.color }}>
+                                      {entry.name}: Rp {(entry.value||0).toLocaleString("id-ID")}
+                                    </p>
+                                  ))}
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "0.72rem", paddingTop: "8px" }} />
+                        {/* Historical actual line */}
+                        <Line type="monotone" dataKey="actual" name="Aktual" stroke="#94a3b8" strokeWidth={2} dot={false} connectNulls />
+                        {/* Top 3 model forecast lines */}
+                        {top3.map(m => (
+                          <Line
+                            key={m.key}
+                            type="monotone"
+                            dataKey={m.key}
+                            name={m.label}
+                            stroke={m.color}
+                            strokeWidth={2}
+                            strokeDasharray="5 3"
+                            dot={{ r: 4, fill: m.color }}
+                            connectNulls
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* 📋 Per-Day Forecast Cards for Top 3 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+                  {stockData.predictions.map((p, idx) => (
+                    <div key={idx} style={{ background: "rgba(14,165,233,0.04)", border: "1px solid rgba(14,165,233,0.15)", borderRadius: "8px", padding: "14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                        <div>
+                          <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
+                            Proyeksi Hari ke-{idx + 1}
+                          </span>
+                          <h5 style={{ fontSize: "0.9rem", margin: "3px 0 0", color: "var(--text-primary)" }}>{p.date}</h5>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                          {[
-                            { label: "SVR", value: p.svm, color: "#8b5cf6" },
-                            { label: "MLP", value: p.mlp, color: "#06b6d4" },
-                            { label: "XGBoost", value: p.xgboost, color: "#f59e0b" },
-                            { label: "Naïve Bayes", value: p.naiveBayes, color: "#ec4899" },
-                            { label: "Log. Reg.", value: p.logisticRegression, color: "#10b981" },
-                            { label: "KNN", value: p.knn, color: "#6366f1" },
-                          ].map((m, mIdx) => (
-                            <div key={mIdx} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
-                              <span style={{ fontSize: "0.65rem", color: m.color, fontWeight: 700, display: "block", marginBottom: "2px" }}>{m.label}</span>
-                              <span style={{ fontSize: "0.8rem", color: "var(--text-primary)", fontWeight: 600 }}>Rp {(m.value || 0).toLocaleString("id-ID")}</span>
-                            </div>
-                          ))}
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: "0.62rem", color: "#38bdf8", padding: "2px 6px", background: "rgba(14,165,233,0.15)", borderRadius: "4px", fontWeight: 700 }}>
+                            AVG TOP-3
+                          </span>
+                          <h4 style={{ fontSize: "1.15rem", margin: "3px 0 0", fontWeight: 800 }}>
+                            Rp {Math.round(top3.reduce((s, m) => s + (p[m.key] || 0), 0) / 3).toLocaleString("id-ID")}
+                          </h4>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                        {top3.map((m, mIdx) => (
+                          <div key={mIdx} style={{ background: `${m.color}10`, border: `1px solid ${m.color}30`, borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+                            <span style={{ fontSize: "0.65rem", color: m.color, fontWeight: 700, display: "block", marginBottom: "2px" }}>
+                              {m.label}
+                            </span>
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                              Rp {(p[m.key] || 0).toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Model Metrics */}
-                {stockData.modelMetrics && (
-                  <div style={{ background: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px" }}>
-                    <h5 style={{ fontSize: "0.85rem", color: "var(--text-primary)", marginBottom: "6px" }}>Evaluasi Akurasi Model (MAE - Mean Absolute Error)</h5>
-                    <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.4", marginBottom: "12px" }}>
-                      MAE mengukur rata-rata kesalahan absolut prediksi terhadap harga aktual pada data training (40 hari terakhir). Semakin kecil nilai MAE, semakin akurat model.
-                    </p>
-                    <table className="stats-table" style={{ fontSize: "0.75rem" }}>
-                      <tbody>
-                        <tr>
-                          <td className="label">Support Vector Regression (SVR)</td>
-                          <td className="value" style={{ color: "var(--color-up)" }}>MAE: {stockData.modelMetrics.svm?.toFixed(2) || "N/A"}</td>
+                {/* MAE Ranking Table (all 6) */}
+                <div style={{ background: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px" }}>
+                  <h5 style={{ fontSize: "0.85rem", color: "var(--text-primary)", marginBottom: "6px" }}>Peringkat Akurasi Semua Model (MAE ↑ semakin buruk)</h5>
+                  <table className="stats-table" style={{ fontSize: "0.75rem" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
+                        <td style={{ paddingBottom: "6px", fontWeight: 700 }}>Rank</td>
+                        <td style={{ paddingBottom: "6px", fontWeight: 700 }}>Model</td>
+                        <td style={{ textAlign: "right", paddingBottom: "6px", fontWeight: 700 }}>MAE</td>
+                        <td style={{ paddingBottom: "6px" }}></td>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ranked.map((m, i) => (
+                        <tr key={m.key}>
+                          <td className="label" style={{ padding: "5px 0" }}>#{i + 1}</td>
+                          <td style={{ padding: "5px 0", color: m.color, fontWeight: i < 3 ? 700 : 400 }}>{m.fullName}</td>
+                          <td className="value" style={{ textAlign: "right", padding: "5px 0", color: i < 3 ? "var(--color-up)" : "var(--text-muted)" }}>
+                            {m.mae.toFixed(2)}
+                          </td>
+                          <td style={{ padding: "5px 8px" }}>
+                            {i < 3 && <span style={{ fontSize: "0.6rem", background: m.color + "30", color: m.color, padding: "2px 5px", borderRadius: "3px", fontWeight: 700 }}>TOP</span>}
+                          </td>
                         </tr>
-                        <tr>
-                          <td className="label">MLP Neural Network</td>
-                          <td className="value" style={{ color: "var(--color-up)" }}>MAE: {stockData.modelMetrics.mlp?.toFixed(2) || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="label">XGBoost (Gradient Boosting)</td>
-                          <td className="value" style={{ color: "var(--color-up)" }}>MAE: {stockData.modelMetrics.xgboost?.toFixed(2) || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="label">Naïve Bayes Regression</td>
-                          <td className="value">MAE: {stockData.modelMetrics.naiveBayes?.toFixed(2) || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="label">Logistic Regression</td>
-                          <td className="value">MAE: {stockData.modelMetrics.logisticRegression?.toFixed(2) || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="label">K-Nearest Neighbors (KNN)</td>
-                          <td className="value">MAE: {stockData.modelMetrics.knn?.toFixed(2) || "N/A"}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            )}
+            );})()}
+
           </div>
 
           {/* OHLC / Candlestick Chart using recharts */}
