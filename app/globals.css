@@ -764,30 +764,245 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE SYSTEM — 3 breakpoints
+   1024px → tablet  |  768px → mobile  |  480px → small
+═══════════════════════════════════════════════════ */
+
+/* ── TABLET (≤ 1024px) ── */
+@media (max-width: 1024px) {
+
+  /* Dashboard grid: 2 columns → 1 column */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Landing page news card: side-by-side → stacked */
   .lp-news-card {
     grid-template-columns: 1fr;
   }
   .lp-news-img-wrap {
-    min-height: 220px;
+    min-height: 260px;
+  }
+
+  /* Reduce dashboard outer padding */
+  .dashboard-container {
+    padding: 20px 16px;
+  }
+
+  /* Navbar username: hide on tablet if tight */
+  .lp-nav-username {
+    display: none;
+  }
+}
+
+/* ── MOBILE (≤ 768px) ── */
+@media (max-width: 768px) {
+
+  /* ── Landing Page ── */
+  .lp-nav-inner {
+    padding: 0 16px;
+  }
+  .lp-nav-title {
+    font-size: 0.85rem;
+  }
+  .lp-nav-sub {
+    display: none;
+  }
+  .lp-nav-username {
+    display: none;
+  }
+  .lp-logout-btn {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+  }
+
+  .lp-hero {
+    padding: 60px 20px 80px;
+  }
+  .lp-hero-badge {
+    font-size: 0.7rem;
+    padding: 5px 12px;
+  }
+
+  .lp-stats-strip {
+    padding: 14px 16px;
+    gap: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .lp-stat-item {
+    padding: 8px 14px;
+  }
+  .lp-stat-label {
+    font-size: 0.62rem;
+  }
+  .lp-stat-value {
+    font-size: 0.9rem;
+  }
+
+  .lp-news-section {
+    padding: 40px 16px 56px;
+  }
+  .lp-news-card {
+    grid-template-columns: 1fr;
+    border-radius: 14px;
+  }
+  .lp-news-img-wrap {
+    min-height: 200px;
   }
   .lp-news-body {
     padding: 28px 24px;
   }
-  .lp-stats-strip {
-    padding: 16px 20px;
-    gap: 0;
+  .lp-news-title {
+    font-size: 1.2rem;
   }
-  .lp-stat-item {
-    padding: 8px 16px;
+  .lp-news-excerpt {
+    font-size: 0.85rem;
+    margin-bottom: 24px;
   }
-  .lp-hero {
-    padding: 64px 20px 56px;
+  .lp-news-meta {
+    flex-wrap: wrap;
+    gap: 10px;
   }
+  .lp-news-cta-hint {
+    display: none;
+  }
+
   .lp-footer {
     flex-direction: column;
     text-align: center;
+    padding: 20px 16px;
+    font-size: 0.7rem;
+  }
+
+  /* ── Dashboard ── */
+  .dashboard-container {
+    padding: 16px 12px;
+  }
+
+  /* Dashboard header: stack vertically */
+  .dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 14px 16px !important;
+  }
+
+  /* Reduce quote price font */
+  .dashboard-container h1[style] {
+    font-size: 2rem !important;
+  }
+
+  /* Tabs: allow horizontal scroll */
+  .tabs-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    padding-bottom: 4px;
+  }
+  .tabs-container::-webkit-scrollbar {
+    height: 3px;
+  }
+  .tab-btn {
+    white-space: nowrap;
+    font-size: 0.82rem;
+    padding: 8px 12px;
+  }
+
+  /* Cards: reduce internal padding */
+  .card {
+    padding: 16px;
+  }
+
+  /* Stats table rows: smaller font */
+  .stats-table td {
+    font-size: 0.8rem;
+    padding: 9px 0;
+  }
+
+  /* Data table: allow horizontal scroll */
+  .data-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Pagination: center it */
+  .pagination-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+/* ── SMALL MOBILE (≤ 480px) ── */
+@media (max-width: 480px) {
+
+  /* Landing page hero: tighter */
+  .lp-hero {
+    padding: 48px 16px 72px;
+  }
+
+  /* Stats strip: 2×2 grid on very small screens */
+  .lp-stats-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 16px;
+    width: 100%;
+  }
+  .lp-stat-divider {
+    display: none;
+  }
+  .lp-stat-item {
+    padding: 0;
+    align-items: flex-start;
+  }
+
+  /* Avatar: smaller */
+  .lp-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+
+  /* News card image: shorter on tiny screens */
+  .lp-news-img-wrap {
+    min-height: 160px;
+  }
+  .lp-news-body {
+    padding: 20px 16px;
+  }
+  .lp-news-title {
+    font-size: 1.05rem;
+  }
+
+  /* Dashboard container */
+  .dashboard-container {
+    padding: 12px 10px;
+  }
+
+  /* Back button text: shorter */
+  .dashboard-container .dashboard-header button:first-child {
+    padding: 7px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Reduce quote banner h1 */
+  .dashboard-container h1 {
+    font-size: 1.8rem !important;
+  }
+
+  /* Monthly chart grid: stack */
+  .dashboard-container [style*="grid-template-columns: 1fr 1.1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tab btn: even smaller */
+  .tab-btn {
+    font-size: 0.76rem;
+    padding: 7px 10px;
   }
 }
 
@@ -796,4 +1011,5 @@ h1, h2, h3, h4, h5, h6 {
 .landing-header { text-align: center; margin-bottom: 48px; }
 .landing-logo { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(135deg, #ffffff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
 .landing-subtitle { font-size: 1.05rem; color: var(--text-secondary); margin-top: 8px; font-weight: 500; }
+
 
