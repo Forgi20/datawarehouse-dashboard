@@ -512,6 +512,14 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
   padding: 96px 28px 80px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  /* Background image */
+  background-image:
+    linear-gradient(to bottom, rgba(3, 7, 18, 0.55) 0%, rgba(3, 7, 18, 0.72) 70%, rgba(3, 7, 18, 1) 100%),
+    url('/backgroundlanding.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 .lp-hero-inner {
   position: relative;
@@ -573,14 +581,15 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   align-items: center;
   gap: 0;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(3, 7, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   padding: 18px 32px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   flex-wrap: wrap;
   justify-content: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 .lp-stat-item {
   display: flex;
@@ -609,28 +618,9 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
-/* Decorative blobs */
+/* Decorative blobs — hidden when hero has background image */
 .lp-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.13;
-  pointer-events: none;
-  z-index: 1;
-}
-.lp-blob-1 {
-  width: 480px;
-  height: 480px;
-  background: #0ea5e9;
-  top: -120px;
-  left: -80px;
-}
-.lp-blob-2 {
-  width: 400px;
-  height: 400px;
-  background: #8b5cf6;
-  bottom: -80px;
-  right: -60px;
+  display: none;
 }
 
 /* ── News Section ── */
