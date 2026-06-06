@@ -616,6 +616,7 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
 
           {/* Candlestick Chart (Overlay) */}
           {activeTab === "profile" && stockData && (
@@ -789,8 +790,8 @@ export default function Home() {
               Hasil peramalan di sebelah kiri di-update secara berkala menggunakan pipeline ETL mini. Dimensi waktu menyinkronkan data sheet ke dalam model peramalan otomatis guna menyediakan decision-making realtime bagi analis portofolio keuangan.
             </p>
           </div>
-
         </div>
+      </div>
         
 
       
