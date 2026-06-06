@@ -15,6 +15,15 @@ import {
   LineChart,
   Line,
 } from "recharts";
+
+import {
+  ChartCanvas,
+  Chart,
+  CandlestickSeries,
+  XAxis as FinXAxis,
+  YAxis as FinYAxis,
+  Tooltip as FinTooltip,
+} from "react-financial-charts";
 import Auth from "./components/Auth";
 
 export default function Home() {
@@ -22,9 +31,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [stockData, setStockData] = useState(null);
   const [selectedRange, setSelectedRange] = useState("3M"); // default range
-  const [activeTab, setActiveTab] = useState("profile"); // profile, monthly, prediction
+  const [activeTab, setActiveTab] = useState("profile"); // profile, monthly, prediction, table
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(30);
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Realtime live status variables
   const [livePrice, setLivePrice] = useState(null);
@@ -202,6 +212,11 @@ export default function Home() {
 
   const formattedMarketCap = (stockData.keyStats.marketCap / 1000000000000).toFixed(2) + "T IDR";
   const changeIsPositive = livePriceChange >= 0;
+
+  // Table Pagination
+  const rowsPerPage = 10;
+  const paginatedData = [...stockData.history].reverse().slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const totalPages = Math.ceil(stockData.history.length / rowsPerPage);
 
   return (
     <main className="dashboard-container">
@@ -401,6 +416,12 @@ export default function Home() {
               >
                 🔮 Data Prediksi
               </button>
+              <button 
+                onClick={() => setActiveTab("table")} 
+                className={`tab-btn ${activeTab === "table" ? "active" : ""}`}
+              >
+                📋 Data Lengkap
+              </button>
             </div>
 
             {/* Tab content 1: Profile & DW Details */}
@@ -596,7 +617,94 @@ export default function Home() {
               </div>
             )}
 
-          </div>
+          {/* Candlestick Chart (Overlay) */}
+          {activeTab === "profile" && stockData && (
+            <div className="card" style={{ padding: "20px", marginTop: "24px" }}>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: "12px" }}>Candlestick Chart (OHLC)</h3>
+              <ChartCanvas
+                ratio={1}
+                width={800}
+                height={400}
+                margin={{ left: 50, right: 50, top: 10, bottom: 30 }}
+                seriesName="TLKM"
+                data={stockData.history.map(d => ({
+                  date: new Date(d.date),
+                  open: d.open,
+                  high: d.high,
+                  low: d.low,
+                  close: d.close,
+                  volume: d.volume
+                }))}
+                xAccessor={d => d.date}
+                xScaleProvider={"scaleTime"}
+                displayXAccessor={d => d.date}
+              >
+                <Chart id={1} yExtents={d => [d.high, d.low]}>
+                  <CandlestickSeries />
+                  <FinXAxis />
+                  <FinYAxis />
+                  <FinTooltip
+                    origin={[80, 50]}
+                    content={(d) => (
+                      <div style={{ background: "rgba(0,0,0,0.7)", color: "#fff", padding: "6px" }}>
+                        <div>Date: {d.date.toLocaleDateString()}</div>
+                        <div>Open: {d.open}</div>
+                        <div>High: {d.high}</div>
+                        <div>Low: {d.low}</div>
+                        <div>Close: {d.close}</div>
+                      </div>
+                    )}
+                  />
+                </Chart>
+              </ChartCanvas>
+            </div>
+          )}
+
+          {/* Full Data Table with Pagination */}
+          {activeTab === "table" && stockData && (
+            <div className="card" style={{ padding: "20px" }}>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: "12px" }}>Data Lengkap (History)</h3>
+              <table className="stats-table" style={{ fontSize: "0.75rem" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid var(--border-color)", fontWeight: "bold" }}>
+                    <th>Date</th>
+                    <th>Open</th>
+                    <th>High</th>
+                    <th>Low</th>
+                    <th>Close</th>
+                    <th>Volume</th>
+                    <th>ΔPrice</th>
+                    <th>Δ% </th>
+                    <th>MA7</th>
+                    <th>MA30</th>
+                    <th>Trend</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockData.history.slice((currentPage-1)*20, currentPage*20).map((d, i) => (
+                    <tr key={i}>
+                      <td>{d.date}</td>
+                      <td>{d.open.toLocaleString('id-ID')}</td>
+                      <td>{d.high.toLocaleString('id-ID')}</td>
+                      <td>{d.low.toLocaleString('id-ID')}</td>
+                      <td>{d.close.toLocaleString('id-ID')}</td>
+                      <td>{formatVolume(d.volume)}</td>
+                      <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)" }}>{d.priceChange}</td>
+                      <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)" }}>{d.priceChangePercent}%</td>
+                      <td>{d.ma7}</td>
+                      <td>{d.ma30}</td>
+                      <td>{d.trend}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: "flex", justifyContent: "center", marginTop: "12px", gap: "8px" }}>
+                <button className="btn-secondary" onClick={() => setCurrentPage(p => Math.max(p-1, 1))} disabled={currentPage === 1}>Prev</button>
+                <span>Page {currentPage} of {Math.ceil(stockData.history.length / 20)}</span>
+                <button className="btn-secondary" onClick={() => setCurrentPage(p => Math.min(p+1, Math.ceil(stockData.history.length / 20)))} disabled={currentPage === Math.ceil(stockData.history.length / 20)}>Next</button>
+              </div>
+            </div>
+          )}
 
         </div>
 
