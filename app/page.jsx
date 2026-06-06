@@ -984,6 +984,84 @@ export default function Home() {
             </table>
           </div>
 
+          {/* Top Gainers & Top Losers Card */}
+          {(() => {
+            const allDays = [...stockData.history].filter(d => d.priceChange !== 0);
+            const topGainers = [...allDays].sort((a, b) => b.priceChangePercent - a.priceChangePercent).slice(0, 5);
+            const topLosers  = [...allDays].sort((a, b) => a.priceChangePercent - b.priceChangePercent).slice(0, 5);
+
+            // Build a 7-point mini sparkline around each entry
+            const getSparkline = (targetDate, isUp) => {
+              const idx = stockData.history.findIndex(d => d.date === targetDate);
+              if (idx < 0) return [];
+              const start = Math.max(0, idx - 6);
+              return stockData.history.slice(start, idx + 1).map((d, i) => ({ v: d.close }));
+            };
+
+            const SparkLine = ({ data, color }) => (
+              <div style={{ width: "70px", height: "30px", flexShrink: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
+                    <defs>
+                      <linearGradient id={`sg-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={color} stopOpacity={0.35} />
+                        <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5}
+                      fill={`url(#sg-${color.replace("#","")})`} dot={false} isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            );
+
+            const Row = ({ item, isUp }) => {
+              const spark = getSparkline(item.date, isUp);
+              const color = isUp ? "#22c55e" : "#ef4444";
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.8rem", fontWeight: 700, color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {item.date}
+                    </div>
+                    <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "1px" }}>
+                      Rp {item.close.toLocaleString("id-ID")}
+                    </div>
+                  </div>
+                  <SparkLine data={spark} color={color} />
+                  <div style={{ textAlign: "right", minWidth: "60px" }}>
+                    <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      {item.close.toLocaleString("id-ID")}
+                    </div>
+                    <div style={{ fontSize: "0.68rem", fontWeight: 700, color }}>
+                      {isUp ? "+" : ""}{item.priceChange} ({isUp ? "+" : ""}{item.priceChangePercent}%)
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div className="card" style={{ padding: "16px" }}>
+                {/* Top Gainers */}
+                <h4 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#22c55e", marginBottom: "8px" }}>
+                  📈 Hari Terbaik
+                </h4>
+                <div style={{ marginBottom: "16px" }}>
+                  {topGainers.map((item, i) => <Row key={i} item={item} isUp={true} />)}
+                </div>
+
+                {/* Top Losers */}
+                <h4 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#ef4444", marginBottom: "8px" }}>
+                  📉 Hari Terburuk
+                </h4>
+                <div>
+                  {topLosers.map((item, i) => <Row key={i} item={item} isUp={false} />)}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Quick Notes Card */}
           <div className="card" style={{ background: "linear-gradient(135deg, rgba(14, 165, 233, 0.02) 0%, rgba(14, 165, 233, 0.08) 100%)", border: "1px solid rgba(14, 165, 233, 0.2)" }}>
             <h4 style={{ fontSize: "0.9rem", color: "var(--accent-color-hover)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
