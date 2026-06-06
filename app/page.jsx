@@ -17,13 +17,10 @@ import {
 } from "recharts";
 
 import {
-  ChartCanvas,
-  Chart,
-  CandlestickSeries,
-  XAxis as FinXAxis,
-  YAxis as FinYAxis,
-  Tooltip as FinTooltip,
-} from "react-financial-charts";
+  ComposedChart,
+  ReferenceLine,
+  ErrorBar,
+} from "recharts";
 import Auth from "./components/Auth";
 
 export default function Home() {
@@ -618,48 +615,81 @@ export default function Home() {
             )}
           </div>
 
-          {/* Candlestick Chart (Overlay) */}
-          {activeTab === "profile" && stockData && (
-            <div className="card" style={{ padding: "20px", marginTop: "24px" }}>
-              <h3 style={{ fontSize: "1.1rem", marginBottom: "12px" }}>Candlestick Chart (OHLC)</h3>
-              <ChartCanvas
-                ratio={1}
-                width={800}
-                height={400}
-                margin={{ left: 50, right: 50, top: 10, bottom: 30 }}
-                seriesName="TLKM"
-                data={stockData.history.map(d => ({
-                  date: new Date(d.date),
-                  open: d.open,
-                  high: d.high,
-                  low: d.low,
-                  close: d.close,
-                  volume: d.volume
-                }))}
-                xAccessor={d => d.date}
-                xScaleProvider={"scaleTime"}
-                displayXAccessor={d => d.date}
-              >
-                <Chart id={1} yExtents={d => [d.high, d.low]}>
-                  <CandlestickSeries />
-                  <FinXAxis />
-                  <FinYAxis />
-                  <FinTooltip
-                    origin={[80, 50]}
-                    content={(d) => (
-                      <div style={{ background: "rgba(0,0,0,0.7)", color: "#fff", padding: "6px" }}>
-                        <div>Date: {d.date.toLocaleDateString()}</div>
-                        <div>Open: {d.open}</div>
-                        <div>High: {d.high}</div>
-                        <div>Low: {d.low}</div>
-                        <div>Close: {d.close}</div>
-                      </div>
-                    )}
-                  />
-                </Chart>
-              </ChartCanvas>
-            </div>
-          )}
+          {/* OHLC / Candlestick Chart using recharts */}
+          {activeTab === "profile" && stockData && (() => {
+            const ohlcData = filteredHistory.slice(-60).map(d => ({
+              date: d.date,
+              open: d.open,
+              high: d.high,
+              low: d.low,
+              close: d.close,
+              // For the bar: center point is midpoint of open/close
+              mid: Math.round((d.open + d.close) / 2),
+              bodySize: Math.abs(d.close - d.open),
+              // ErrorBar for high/low wicks
+              wick: [
+                Math.round((d.high - Math.max(d.open, d.close))),
+                Math.round((Math.min(d.open, d.close) - d.low))
+              ],
+              isUp: d.close >= d.open,
+              range: [d.low, d.high],
+            }));
+            return (
+              <div className="card" style={{ padding: "20px", marginTop: "24px" }}>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "4px" }}>Candlestick / OHLC Chart (60 hari terakhir)</h3>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "16px" }}>Setiap batang menunjukkan range harga harian: Open, High, Low, Close</p>
+                <div style={{ width: "100%", height: "340px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={ohlcData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                      <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={9} interval={9} dy={8} />
+                      <YAxis stroke="var(--text-muted)" fontSize={10} domain={['auto','auto']} tickFormatter={v => `${(v/1000).toFixed(1)}k`} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const d = payload[0]?.payload;
+                            if (!d) return null;
+                            return (
+                              <div className="chart-tooltip">
+                                <p className="chart-tooltip-date">{d.date}</p>
+                                <p className="chart-tooltip-val" style={{ color: d.isUp ? "var(--color-up)" : "var(--color-down)" }}>Open: Rp {d.open?.toLocaleString("id-ID")}</p>
+                                <p className="chart-tooltip-val" style={{ color: "#94a3b8" }}>High: Rp {d.high?.toLocaleString("id-ID")}</p>
+                                <p className="chart-tooltip-val" style={{ color: "#94a3b8" }}>Low: Rp {d.low?.toLocaleString("id-ID")}</p>
+                                <p className="chart-tooltip-val" style={{ color: d.isUp ? "var(--color-up)" : "var(--color-down)", fontWeight: 700 }}>Close: Rp {d.close?.toLocaleString("id-ID")}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      {/* High-Low wick as thin line */}
+                      <Bar dataKey="high" fill="transparent" />
+                      {ohlcData.map((entry, index) => (
+                        <ReferenceLine
+                          key={`wick-${index}`}
+                          segment={[{ x: entry.date, y: entry.low }, { x: entry.date, y: entry.high }]}
+                          stroke={entry.isUp ? "#22c55e" : "#ef4444"}
+                          strokeWidth={1}
+                        />
+                      ))}
+                      {/* Body of candle */}
+                      {ohlcData.map((entry, index) => (
+                        <ReferenceLine
+                          key={`body-${index}`}
+                          segment={[
+                            { x: entry.date, y: Math.min(entry.open, entry.close) },
+                            { x: entry.date, y: Math.max(entry.open, entry.close) }
+                          ]}
+                          stroke={entry.isUp ? "#22c55e" : "#ef4444"}
+                          strokeWidth={4}
+                        />
+                      ))}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Full Data Table with Pagination */}
           {activeTab === "table" && stockData && (
