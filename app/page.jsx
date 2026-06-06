@@ -29,6 +29,7 @@ export default function Home() {
   const [stockData, setStockData] = useState(null);
   const [selectedRange, setSelectedRange] = useState("3M"); // default range
   const [activeTab, setActiveTab] = useState("profile"); // profile, monthly, prediction, table
+  const [view, setView] = useState("landing"); // landing, dashboard
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(30);
   const [currentPage, setCurrentPage] = useState(1);
@@ -215,6 +216,47 @@ export default function Home() {
   const paginatedData = [...stockData.history].reverse().slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const totalPages = Math.ceil(stockData.history.length / rowsPerPage);
 
+  if (view === "landing") {
+    return (
+      <main className="landing-container">
+        <header className="landing-header">
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", justifyContent: "center", marginBottom: "12px" }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "8px", backgroundColor: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "white", fontSize: "1.4rem", boxShadow: "0 0 15px rgba(239, 68, 68, 0.4)" }}>T</div>
+            <h1 className="landing-logo">TLKM News Hub</h1>
+          </div>
+          <p className="landing-subtitle">Pusat Data Warehouse & Analisis Prediktif PT Telkom Indonesia (Persero) Tbk</p>
+        </header>
+
+        <section className="news-grid">
+          <div className="news-card card" onClick={() => setView("dashboard")}>
+            <div className="news-image-wrapper">
+              <img src="/stock_news_thumbnail.png" alt="TLKM Data Warehouse Server Room" className="news-image" />
+              <div className="news-category">DW TRANSFORMATION</div>
+            </div>
+            <div className="news-content">
+              <div className="news-meta">
+                <span className="news-meta-item">📅 Juni 2026</span>
+                <span className="news-meta-item">✍️ Tim Redaksi DW</span>
+                <span className="news-meta-item">⏱️ 5 Menit Baca</span>
+              </div>
+              <h2 className="news-title">
+                Transformasi Data Warehouse: Telkom Indonesia (TLKM) Targetkan Efisiensi Analisis Big Data Hingga 40%
+              </h2>
+              <p className="news-excerpt">
+                PT Telkom Indonesia (Persero) Tbk mempercepat langkah digitalisasi dengan meresmikan jaringan infrastruktur data warehousing terintegrasi baru. Proyek ini dirancang untuk mengkonsolidasikan data transaksi multidimensi secara real-time guna mendukung analisis prediktif harga saham dan pengambilan keputusan keuangan berbasis Machine Learning...
+              </p>
+              <div className="news-footer">
+                <button className="btn-primary read-more-btn">
+                  Buka Dashboard Analisis & Rekomendasi ML →
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="dashboard-container">
       {/* Top Navigation Bar */}
@@ -242,6 +284,10 @@ export default function Home() {
               {autoRefresh ? "[Pause]" : "[Resume]"}
             </button>
           </div>
+
+          <button onClick={() => setView("landing")} className="btn-secondary" style={{ padding: "8px 14px", fontSize: "0.8rem", color: "var(--accent-color-hover)", borderColor: "rgba(14, 165, 233, 0.2)" }}>
+            📰 News Hub
+          </button>
 
           <button onClick={handleManualRefresh} className="btn-secondary" style={{ padding: "8px 14px", fontSize: "0.8rem" }}>
             🔄 Refresh
