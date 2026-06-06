@@ -334,61 +334,109 @@ export default function Home() {
 
             {/* Recharts Component */}
             <div style={{ width: "100%", height: "350px", position: "relative" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={filteredHistory} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-color)" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="var(--accent-color)" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="var(--text-muted)" 
-                    fontSize={11} 
-                    tickLine={false} 
-                    dy={10} 
-                  />
-                  <YAxis 
-                    stroke="var(--text-muted)" 
-                    fontSize={11} 
-                    tickLine={false} 
-                    domain={['auto', 'auto']}
-                    tickFormatter={(val) => `Rp ${val.toLocaleString("id-ID")}`}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const d = payload[0].payload;
-                        return (
-                          <div className="chart-tooltip">
-                            <p className="chart-tooltip-date">{d.date}</p>
-                            <p className="chart-tooltip-val" style={{ color: "var(--accent-color-hover)" }}>
-                              Close: Rp {d.close.toLocaleString("id-ID")}
-                            </p>
-                            <p className="chart-tooltip-val" style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginTop: "4px" }}>
-                              Open: Rp {d.open.toLocaleString("id-ID")}
-                            </p>
-                            <p className="chart-tooltip-val" style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}>
-                              Volume: {d.volume.toLocaleString("id-ID")}
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="close"
-                    stroke="var(--accent-color)"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#chartGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {(() => {
+                const maxVolume = Math.max(...filteredHistory.map(d => d.volume || 0), 1);
+                return (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={filteredHistory} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--accent-color)" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="var(--accent-color)" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="var(--text-muted)" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        dy={10} 
+                      />
+                      <YAxis 
+                        stroke="var(--text-muted)" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        domain={['auto', 'auto']}
+                        tickFormatter={(val) => `Rp ${val.toLocaleString("id-ID")}`}
+                      />
+                      <YAxis 
+                        yAxisId="volume"
+                        orientation="right"
+                        hide={true}
+                        domain={[0, maxVolume * 4]}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const d = payload[0].payload;
+                            return (
+                              <div className="chart-tooltip">
+                                <p className="chart-tooltip-date">{d.date}</p>
+                                <p className="chart-tooltip-val" style={{ color: "var(--accent-color-hover)" }}>
+                                  Close: Rp {d.close.toLocaleString("id-ID")}
+                                </p>
+                                {d.ma7 && (
+                                  <p className="chart-tooltip-val" style={{ color: "#fbbf24", fontSize: "0.8rem", marginTop: "2px" }}>
+                                    MA7: Rp {d.ma7.toLocaleString("id-ID")}
+                                  </p>
+                                )}
+                                {d.ma30 && (
+                                  <p className="chart-tooltip-val" style={{ color: "#38bdf8", fontSize: "0.8rem", marginTop: "2px" }}>
+                                    MA30: Rp {d.ma30.toLocaleString("id-ID")}
+                                  </p>
+                                )}
+                                <p className="chart-tooltip-val" style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginTop: "4px" }}>
+                                  Open: Rp {d.open.toLocaleString("id-ID")}
+                                </p>
+                                <p className="chart-tooltip-val" style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}>
+                                  Volume: {d.volume.toLocaleString("id-ID")}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: "0.75rem", paddingTop: "10px" }} />
+                      <Bar 
+                        yAxisId="volume"
+                        dataKey="volume"
+                        fill="rgba(148, 163, 184, 0.08)"
+                        maxBarSize={45}
+                        name="Volume"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="close"
+                        stroke="var(--accent-color)"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#chartGradient)"
+                        name="Harga"
+                      />
+                      <Line 
+                        type="monotone"
+                        dataKey="ma7"
+                        stroke="#fbbf24"
+                        strokeWidth={1.5}
+                        dot={false}
+                        activeDot={false}
+                        name="MA7"
+                      />
+                      <Line 
+                        type="monotone"
+                        dataKey="ma30"
+                        stroke="#0ea5e9"
+                        strokeWidth={1.5}
+                        dot={false}
+                        activeDot={false}
+                        name="MA30"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                );
+              })()}
             </div>
           </div>
 
@@ -848,64 +896,61 @@ export default function Home() {
 
           {/* Full Data Table with Pagination */}
           {activeTab === "table" && stockData && (
-            <div className="card" style={{ padding: "20px" }}>
-              <h3 style={{ fontSize: "1.1rem", marginBottom: "12px" }}>Data Lengkap (History)</h3>
-              <table className="stats-table" style={{ fontSize: "0.75rem" }}>
-                <thead>
-                  <tr style={{ borderBottom: "2px solid var(--border-color)", fontWeight: "bold" }}>
-                    <th>Date</th>
-                    <th>Open</th>
-                    <th>High</th>
-                    <th>Low</th>
-                    <th>Close</th>
-                    <th>Volume</th>
-                    <th>ΔPrice</th>
-                    <th>Δ% </th>
-                    <th>MA7</th>
-                    <th>MA30</th>
-                    <th>Trend</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockData.history.slice((currentPage-1)*20, currentPage*20).map((d, i) => (
-                    <tr key={i}>
-                      <td>{d.date}</td>
-                      <td>{d.open.toLocaleString('id-ID')}</td>
-                      <td>{d.high.toLocaleString('id-ID')}</td>
-                      <td>{d.low.toLocaleString('id-ID')}</td>
-                      <td>{d.close.toLocaleString('id-ID')}</td>
-                      <td>{formatVolume(d.volume)}</td>
-                      <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)" }}>{d.priceChange}</td>
-                      <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)" }}>{d.priceChangePercent}%</td>
-                      <td>{d.ma7}</td>
-                      <td>{d.ma30}</td>
-                      <td>
-                        <span style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px",
-                          padding: "2px 7px",
-                          borderRadius: "4px",
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          ...(d.trend === "Naik"
-                            ? { background: "rgba(34,197,94,0.12)", color: "#22c55e" }
-                            : d.trend === "Turun"
-                            ? { background: "rgba(239,68,68,0.12)", color: "#ef4444" }
-                            : { background: "rgba(148,163,184,0.12)", color: "#94a3b8" })
-                        }}>
-                          {d.trend === "Naik" ? "▲" : d.trend === "Turun" ? "▼" : "●"}
-                          {" "}{d.trend}
-                        </span>
-                      </td>
+            <div className="card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div>
+                  <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0 }}>Data Lengkap (History)</h3>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: 0 }}>Transaksi historis saham TLKM hasil pemrosesan data warehouse</p>
+                </div>
+              </div>
+              <div className="data-table-wrapper">
+                <table className="fact-data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Open</th>
+                      <th>High</th>
+                      <th>Low</th>
+                      <th>Close</th>
+                      <th>Volume</th>
+                      <th>ΔPrice</th>
+                      <th>Δ% </th>
+                      <th>MA7</th>
+                      <th>MA30</th>
+                      <th>Trend</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ display: "flex", justifyContent: "center", marginTop: "12px", gap: "8px" }}>
-                <button className="btn-secondary" onClick={() => setCurrentPage(p => Math.max(p-1, 1))} disabled={currentPage === 1}>Prev</button>
-                <span>Page {currentPage} of {Math.ceil(stockData.history.length / 20)}</span>
-                <button className="btn-secondary" onClick={() => setCurrentPage(p => Math.min(p+1, Math.ceil(stockData.history.length / 20)))} disabled={currentPage === Math.ceil(stockData.history.length / 20)}>Next</button>
+                  </thead>
+                  <tbody>
+                    {stockData.history.slice((currentPage-1)*20, currentPage*20).map((d, i) => (
+                      <tr key={i}>
+                        <td style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{d.date}</td>
+                        <td>Rp {d.open.toLocaleString('id-ID')}</td>
+                        <td>Rp {d.high.toLocaleString('id-ID')}</td>
+                        <td>Rp {d.low.toLocaleString('id-ID')}</td>
+                        <td style={{ fontWeight: 700, color: "var(--text-primary)" }}>Rp {d.close.toLocaleString('id-ID')}</td>
+                        <td>{formatVolume(d.volume)}</td>
+                        <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)", fontWeight: 600 }}>
+                          {d.priceChange > 0 ? `+${d.priceChange.toLocaleString('id-ID')}` : d.priceChange.toLocaleString('id-ID')}
+                        </td>
+                        <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)", fontWeight: 600 }}>
+                          {d.priceChange > 0 ? `+${d.priceChangePercent.toFixed(2)}` : d.priceChangePercent.toFixed(2)}%
+                        </td>
+                        <td style={{ color: "#fbbf24" }}>Rp {(d.ma7 || 0).toLocaleString('id-ID')}</td>
+                        <td style={{ color: "#38bdf8" }}>Rp {(d.ma30 || 0).toLocaleString('id-ID')}</td>
+                        <td>
+                          <span className={`trend-badge ${d.trend === "Naik" ? "up" : d.trend === "Turun" ? "down" : "flat"}`}>
+                            {d.trend === "Naik" ? "▲" : d.trend === "Turun" ? "▼" : "●"} {d.trend}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="pagination-container">
+                <button className="pagination-btn" onClick={() => setCurrentPage(p => Math.max(p-1, 1))} disabled={currentPage === 1}>Sebelumnya</button>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Halaman {currentPage} dari {Math.ceil(stockData.history.length / 20)}</span>
+                <button className="pagination-btn" onClick={() => setCurrentPage(p => Math.min(p+1, Math.ceil(stockData.history.length / 20)))} disabled={currentPage === Math.ceil(stockData.history.length / 20)}>Selanjutnya</button>
               </div>
             </div>
           )}

@@ -323,7 +323,7 @@ export async function GET() {
         adjClose,
         volume
       };
-    });
+    }).filter(d => d.date && d.close > 0);
 
     // Reverse to chronological order (oldest first)
     cleanedData.reverse();
