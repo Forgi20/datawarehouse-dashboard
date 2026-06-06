@@ -218,42 +218,118 @@ export default function Home() {
 
   if (view === "landing") {
     return (
-      <main className="landing-container">
-        <header className="landing-header">
-          <div style={{ display: "flex", alignItems: "center", gap: "14px", justifyContent: "center", marginBottom: "12px" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "8px", backgroundColor: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "white", fontSize: "1.4rem", boxShadow: "0 0 15px rgba(239, 68, 68, 0.4)" }}>T</div>
-            <h1 className="landing-logo">TLKM News Hub</h1>
-          </div>
-          <p className="landing-subtitle">Pusat Data Warehouse & Analisis Prediktif PT Telkom Indonesia (Persero) Tbk</p>
-        </header>
+      <div className="lp-root">
 
-        <section className="news-grid">
-          <div className="news-card card" onClick={() => setView("dashboard")}>
-            <div className="news-image-wrapper">
-              <img src="/stock_news_thumbnail.png" alt="TLKM Data Warehouse Server Room" className="news-image" />
-              <div className="news-category">DW TRANSFORMATION</div>
-            </div>
-            <div className="news-content">
-              <div className="news-meta">
-                <span className="news-meta-item">📅 Juni 2026</span>
-                <span className="news-meta-item">✍️ Tim Redaksi DW</span>
-                <span className="news-meta-item">⏱️ 5 Menit Baca</span>
+        {/* ── Navbar ── */}
+        <nav className="lp-nav">
+          <div className="lp-nav-inner">
+            <div className="lp-nav-brand">
+              <img src="/logotelkom.png" alt="Logo Telkom" className="lp-nav-logo" />
+              <div>
+                <span className="lp-nav-title">TLKM Intelligence</span>
+                <span className="lp-nav-sub">Data Warehouse Portal</span>
               </div>
-              <h2 className="news-title">
+            </div>
+            <div className="lp-nav-right">
+              <div className="lp-nav-user">
+                <div className="lp-avatar">{user ? user[0].toUpperCase() : "U"}</div>
+                <span className="lp-nav-username">{user}</span>
+              </div>
+              <button onClick={handleLogout} className="lp-logout-btn">Sign Out</button>
+            </div>
+          </div>
+        </nav>
+
+        {/* ── Hero ── */}
+        <section className="lp-hero">
+          <div className="lp-hero-inner">
+            <div className="lp-hero-badge">
+              <span className="lp-badge-dot"></span>
+              Live — Data Warehouse TLKM.JK
+            </div>
+            <h1 className="lp-hero-title">
+              Analisis Saham<br />
+              <span className="lp-hero-accent">Real-time & Prediktif</span>
+            </h1>
+            <p className="lp-hero-desc">
+              Pantau pergerakan harga TLKM, analisis Moving Average, dan ramalkan harga penutupan menggunakan 6 model Machine Learning — semuanya dalam satu dashboard terpadu.
+            </p>
+
+            {/* Stats strip */}
+            <div className="lp-stats-strip">
+              <div className="lp-stat-item">
+                <span className="lp-stat-label">Harga Terakhir</span>
+                <span className="lp-stat-value" style={{ color: livePrice && livePriceChange >= 0 ? "var(--color-up)" : "var(--color-down)" }}>
+                  Rp {livePrice ? livePrice.toLocaleString("id-ID") : "—"}
+                </span>
+              </div>
+              <div className="lp-stat-divider" />
+              <div className="lp-stat-item">
+                <span className="lp-stat-label">Perubahan Hari Ini</span>
+                <span className="lp-stat-value" style={{ color: livePriceChange >= 0 ? "var(--color-up)" : "var(--color-down)" }}>
+                  {livePriceChange >= 0 ? "+" : ""}{livePriceChange ? livePriceChange.toLocaleString("id-ID") : "—"}
+                  {livePercentChange ? ` (${livePercentChange.toFixed(2)}%)` : ""}
+                </span>
+              </div>
+              <div className="lp-stat-divider" />
+              <div className="lp-stat-item">
+                <span className="lp-stat-label">Market Cap</span>
+                <span className="lp-stat-value">{stockData ? (stockData.keyStats.marketCap / 1e12).toFixed(2) + "T IDR" : "—"}</span>
+              </div>
+              <div className="lp-stat-divider" />
+              <div className="lp-stat-item">
+                <span className="lp-stat-label">Total Data</span>
+                <span className="lp-stat-value">{stockData ? stockData.warehouseMetadata.recordCount.toLocaleString() + " baris" : "—"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* decorative blobs */}
+          <div className="lp-blob lp-blob-1" />
+          <div className="lp-blob lp-blob-2" />
+        </section>
+
+        {/* ── News Section ── */}
+        <section className="lp-news-section">
+          <div className="lp-section-header">
+            <div className="lp-section-label">📰 Artikel Terbaru</div>
+            <div className="lp-section-line" />
+          </div>
+
+          <div className="lp-news-card" onClick={() => setView("dashboard")}>
+            <div className="lp-news-img-wrap">
+              <img src="/stock_news_thumbnail.png" alt="TLKM DW" className="lp-news-img" />
+              <span className="lp-news-badge">DW TRANSFORMATION</span>
+            </div>
+            <div className="lp-news-body">
+              <div className="lp-news-meta">
+                <span>📅 Juni 2026</span>
+                <span>✍️ Tim Redaksi DW</span>
+                <span>⏱️ 5 Menit Baca</span>
+              </div>
+              <h2 className="lp-news-title">
                 Transformasi Data Warehouse: Telkom Indonesia (TLKM) Targetkan Efisiensi Analisis Big Data Hingga 40%
               </h2>
-              <p className="news-excerpt">
-                PT Telkom Indonesia (Persero) Tbk mempercepat langkah digitalisasi dengan meresmikan jaringan infrastruktur data warehousing terintegrasi baru. Proyek ini dirancang untuk mengkonsolidasikan data transaksi multidimensi secara real-time guna mendukung analisis prediktif harga saham dan pengambilan keputusan keuangan berbasis Machine Learning...
+              <p className="lp-news-excerpt">
+                PT Telkom Indonesia (Persero) Tbk mempercepat langkah digitalisasi dengan meresmikan infrastruktur data warehousing terintegrasi baru. Proyek ini mengkonsolidasikan data transaksi multidimensi secara real-time untuk mendukung analisis prediktif dan pengambilan keputusan berbasis ML.
               </p>
-              <div className="news-footer">
-                <button className="btn-primary read-more-btn">
-                  Buka Dashboard Analisis & Rekomendasi ML →
+              <div className="lp-news-cta">
+                <button className="btn-primary" style={{ padding: "12px 28px", fontSize: "0.9rem", fontWeight: 700 }}>
+                  Buka Dashboard Analisis →
                 </button>
+                <span className="lp-news-cta-hint">Klik kartu ini untuk membuka dashboard</span>
               </div>
             </div>
           </div>
         </section>
-      </main>
+
+        {/* ── Footer ── */}
+        <footer className="lp-footer">
+          <span>© 2026 PT Telkom Indonesia (Persero) Tbk · Data Warehouse Intelligence Platform</span>
+          <span>TLKM.JK · IDX · NYSE: TLK</span>
+        </footer>
+
+      </div>
     );
   }
 
@@ -261,8 +337,41 @@ export default function Home() {
     <main className="dashboard-container">
       {/* Top Navigation Bar */}
       <header className="dashboard-header card" style={{ padding: "16px 24px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "6px", backgroundColor: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "white" }}>T</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          {/* Back Button */}
+          <button
+            onClick={() => setView("landing")}
+            title="Kembali ke News Hub"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              borderRadius: "8px",
+              color: "var(--text-secondary)",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "rgba(14, 165, 233, 0.10)";
+              e.currentTarget.style.borderColor = "rgba(14, 165, 233, 0.35)";
+              e.currentTarget.style.color = "var(--accent-color-hover)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            ← Kembali
+          </button>
+
+          <img src="/logotelkom.png" alt="Logo Telkom" style={{ width: "36px", height: "36px", objectFit: "contain", borderRadius: "6px" }} />
           <div>
             <h2 style={{ fontSize: "1.2rem", margin: 0 }}>TLKM.JK Dashboard</h2>
             <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: 0 }}>Telkom Indonesia (Persero) Tbk • Data Warehouse Portal</p>
@@ -285,9 +394,7 @@ export default function Home() {
             </button>
           </div>
 
-          <button onClick={() => setView("landing")} className="btn-secondary" style={{ padding: "8px 14px", fontSize: "0.8rem", color: "var(--accent-color-hover)", borderColor: "rgba(14, 165, 233, 0.2)" }}>
-            📰 News Hub
-          </button>
+
 
           <button onClick={handleManualRefresh} className="btn-secondary" style={{ padding: "8px 14px", fontSize: "0.8rem" }}>
             🔄 Refresh
