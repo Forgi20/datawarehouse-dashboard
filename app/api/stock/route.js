@@ -204,6 +204,58 @@ function fitXGBoost(X, Y, X_pred) {
   });
 }
 
+// Simple Naïve Bayes stub (regression using mean of Y)
+function fitNaiveBayes(X, Y, X_pred) {
+  const meanY = Y.reduce((s, v) => s + v, 0) / Y.length;
+  return X_pred.map(() => meanY);
+}
+
+// Simple Logistic Regression stub (linear regression with sigmoid activation)
+function fitLogisticRegression(X, Y, X_pred) {
+  // Fit a simple linear model y = a*x + b using least squares
+  const n = X.length;
+  const sumX = X.reduce((s, v) => s + v, 0);
+  const sumY = Y.reduce((s, v) => s + v, 0);
+  const sumXY = X.reduce((s, v, i) => s + v * Y[i], 0);
+  const sumXX = X.reduce((s, v) => s + v * v, 0);
+  const denominator = n * sumXX - sumX * sumX || 1;
+  const a = (n * sumXY - sumX * sumY) / denominator;
+  const b = (sumY - a * sumX) / n;
+  // Apply sigmoid to keep outputs in a reasonable range
+  const sigmoid = (z) => 1 / (1 + Math.exp(-z));
+  const yMin = Math.min(...Y);
+  const yMax = Math.max(...Y);
+  return X_pred.map(x => {
+    const linear = a * x + b;
+    const s = sigmoid(linear);
+    // Scale back to original Y range
+    return yMin + s * (yMax - yMin);
+  });
+}
+
+// Simple K-Nearest Neighbors stub (k=3, distance based on index difference)
+function fitKNN(X, Y, X_pred) {
+  const k = 3;
+  return X_pred.map(xIdx => {
+    // Find distances to all training X indexes
+    const distances = X.map((xVal, i) => ({ idx: i, dist: Math.abs(xIdx - X[i]) }));
+    distances.sort((a, b) => a.dist - b.dist);
+    const neighbors = distances.slice(0, k);
+    const avg = neighbors.reduce((s, n) => s + Y[n.idx], 0) / k;
+    return avg;
+  });
+}
+
+// Helper: Mean Absolute Error
+function mae(trueVals, predVals) {
+  const n = trueVals.length;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    sum += Math.abs(trueVals[i] - predVals[i]);
+  }
+  return sum / n;
+}
+
 // Generate business days skipping weekends
 const getNextBusinessDays = (startDateStr, count) => {
   const dates = [startDateStr];
@@ -441,15 +493,29 @@ export async function GET() {
     const svmPredictions = fitSVR(X, Y, X_pred);
     const mlpPredictions = fitMLP(X, Y, X_pred);
     const xgbPredictions = fitXGBoost(X, Y, X_pred);
+    const nbPredictions = fitNaiveBayes(X, Y, X_pred);
+    const lrPredictions = fitLogisticRegression(X, Y, X_pred);
+    const knnPredictions = fitKNN(X, Y, X_pred);
 
-    const forecasts = predDates.map((date, idx) => {
-      return {
-        date,
-        svm: Math.round(svmPredictions[idx] * 100) / 100,
-        mlp: Math.round(mlpPredictions[idx] * 100) / 100,
-        xgboost: Math.round(xgbPredictions[idx] * 100) / 100
-      };
-    });
+    // Calculate Metrics on Training Data
+    const modelMetrics = {
+        svm: mae(Y, fitSVR(X, Y, X)),
+        mlp: mae(Y, fitMLP(X, Y, X)),
+        xgboost: mae(Y, fitXGBoost(X, Y, X)),
+        naiveBayes: mae(Y, fitNaiveBayes(X, Y, X)),
+        logisticRegression: mae(Y, fitLogisticRegression(X, Y, X)),
+        knn: mae(Y, fitKNN(X, Y, X))
+    };
+
+    const forecasts = predDates.map((date, idx) => ({
+      date,
+      svm: Math.round(svmPredictions[idx] * 100) / 100,
+      mlp: Math.round(mlpPredictions[idx] * 100) / 100,
+      xgboost: Math.round(xgbPredictions[idx] * 100) / 100,
+      naiveBayes: Math.round(nbPredictions[idx] * 100) / 100,
+      logisticRegression: Math.round(lrPredictions[idx] * 100) / 100,
+      knn: Math.round(knnPredictions[idx] * 100) / 100
+    }));
 
     const warehouseMetadata = {
       sourceFile: 'dahamkom.xlsx',
@@ -464,6 +530,7 @@ export async function GET() {
       keyStats,
       monthlyData,
       predictions: forecasts,
+      modelMetrics,
       warehouseMetadata
     });
 

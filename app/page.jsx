@@ -11,7 +11,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend
+  Legend,
+  LineChart,
+  Line,
 } from "recharts";
 import Auth from "./components/Auth";
 
