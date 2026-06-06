@@ -879,7 +879,25 @@ export default function Home() {
                       <td style={{ color: d.priceChange > 0 ? "var(--color-up)" : "var(--color-down)" }}>{d.priceChangePercent}%</td>
                       <td>{d.ma7}</td>
                       <td>{d.ma30}</td>
-                      <td>{d.trend}</td>
+                      <td>
+                        <span style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          ...(d.trend === "Naik"
+                            ? { background: "rgba(34,197,94,0.12)", color: "#22c55e" }
+                            : d.trend === "Turun"
+                            ? { background: "rgba(239,68,68,0.12)", color: "#ef4444" }
+                            : { background: "rgba(148,163,184,0.12)", color: "#94a3b8" })
+                        }}>
+                          {d.trend === "Naik" ? "▲" : d.trend === "Turun" ? "▼" : "●"}
+                          {" "}{d.trend}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
